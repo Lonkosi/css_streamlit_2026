@@ -5,50 +5,60 @@ Contains the statistical logic for the Consultations demo.
 """
 import pandas as pd
 import plotly.express as px
-import numpy as np
+import scipy.stats as stats
 
-# --- STATISTICAL FUNCTIONS (For Consultations) ---
-
-def generate_clt_distribution(n_samples, sample_size):
+def calculate_chisquare_result(df):
     """
-    Simulates the Central Limit Theorem.
-    1. Generates skewed data (non-normal exponential distribution).
-    2. Takes 'n_samples' (1000) of size 'sample_size'.
-    3. Calculates the means of those samples.
+    Takes a contingency table (DataFrame), performs Chi-Square test,
+    and returns the Test Statistic, p-value, conclusion, and color.
     """
-    # Create a skewed population (e.g., exponential distribution)
-    # Using a fixed seed for reproducibility isn't strictly necessary but good practice
-    population_data = np.random.exponential(scale=1.0, size=10000)
+    # Run the test
+    # stats.chi2_contingency returns: chi2 stat, p-value, dof, expected_matrix
+    chi2_stat, p, dof, expected = stats.chi2_contingency(df)
     
-    # Take samples and calculate means
-    sample_means = []
-    for _ in range(n_samples):
-        # Randomly select 'sample_size' items
-        sample = np.random.choice(population_data, size=sample_size)
-        sample_means.append(np.mean(sample))
+    # Interpret results
+    if p < 0.05:
+        conclusion = "Result: **Statistically Significant Association**"
+        color = "green"
+    else:
+        conclusion = "Result: **No Significant Association**"
+        color = "red"
         
-    return sample_means
+    return chi2_stat, p, conclusion, color
 
-def plot_clt_histogram(sample_means, sample_size):
+def plot_clustered_bar(df):
     """
-    Plots the distribution of sample means using Plotly.
+    Converts a contingency table into a Clustered Bar Chart for "Categorical vs Categorical" analysis.
+    Handles dynamic dataframe sizes.
     """
-    df_clt = pd.DataFrame({'Sample Means': sample_means})
+    # 1. Reset index to turn the Row Labels (e.g., Drug A/Drug B) into a proper column
+    df_reset = df.reset_index()
     
-    fig = px.histogram(
-        df_clt, 
-        x='Sample Means', 
-        nbins=40, 
-        title=f"Distribution of Sample Means (Sample Size n = {sample_size})",
-        color_discrete_sequence=['#2E86C1'], # Professional Data Blue
-        opacity=0.8
+    # Use the name of the index if it exists, otherwise call it 'Group'
+    index_name = df.index.name if df.index.name else "Group"
+    df_reset = df_reset.rename(columns={'index': index_name})
+    
+    # 2. "Melt" the table from wide format to long format for Plotly
+    # Wide: Group | Col1 | Col2 ...
+    # Long: Group | Outcome (Variable) | Count (Value)
+    df_long = df_reset.melt(id_vars=index_name, var_name='Category', value_name='Count')
+    
+    # 3. Create Clustered Bar Chart
+    fig = px.bar(
+        df_long, 
+        x=index_name, 
+        y="Count", 
+        color='Category', 
+        barmode="group",
+        title="Visualizing the Association (Clustered Bar Chart)",
+        color_discrete_sequence=px.colors.qualitative.Safe
     )
     
-    # Clean up the layout for a professional look
     fig.update_layout(
-        xaxis_title="Sample Mean",
+        xaxis_title=index_name,
         yaxis_title="Frequency",
-        bargap=0.05,
-        template="plotly_white"
+        template="plotly_white",
+        legend_title="Categories"
     )
+    
     return fig
