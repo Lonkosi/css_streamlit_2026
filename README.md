@@ -1,8 +1,6 @@
 # css_streamlit_2026
 # 📊 Research Profile & Statistical Consultation App
 
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://css-streamlit-2026.streamlit.app/)
-
 ## 📖 Overview
 This repository contains the source code for my digital research portfolio and interactive statistical consultation tool. Built with **Python** and **Streamlit**, this application serves two purposes:
 
